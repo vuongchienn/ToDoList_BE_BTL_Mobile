@@ -39,3 +39,11 @@ Route::prefix('/task-groups')->name('task-groups.')->group(function () {
     Route::put('/update/{id}', [TaskGroupController::class, 'update'])->name('update');
     Route::delete('/delete/{id}', [TaskGroupController::class, 'destroy'])->name('destroy');
 });
+
+//Chức năng quản lý notes của user
+Route::prefix('/notes')->name('notes.')->group(function () {
+    Route::get('/{paginate}', [NoteController::class, 'index'])->name('index');
+    Route::post('/create', [NoteController::class, 'store'])->name('store');
+    Route::put('/update/{id}', [NoteController::class, 'update'])->name('update');
+    Route::delete('/delete/{id}', [NoteController::class, 'destroy'])->name('destroy');
+});
