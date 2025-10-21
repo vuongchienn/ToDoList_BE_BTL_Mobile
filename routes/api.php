@@ -47,3 +47,30 @@ Route::prefix('/notes')->name('notes.')->group(function () {
     Route::put('/update/{id}', [NoteController::class, 'update'])->name('update');
     Route::delete('/delete/{id}', [NoteController::class, 'destroy'])->name('destroy');
 });
+
+
+//Nhóm route task
+Route::prefix('/task')->name('task.')->group(function () {
+    Route::get('/', [TaskController::class, 'getTasks'])->name('list');
+    Route::get('/completed', [TaskController::class, 'getCompletedTasks']);
+    Route::get('/deleted', [TaskController::class, 'getDeletedTasks']);
+    Route::get('/important', [TaskController::class, 'getImportantTasks'])->name('important');
+    Route::post('/search', [TaskController::class, 'searchTasksByTitle'])->name('search');
+    Route::get('/user-teams', [TaskController::class, 'getTasksByUserInTeams'])->name('task.user-teams');
+    Route::get('/teams-and-groups', [TaskController::class, 'getTeamsAndTaskGroups'])->name('task.teams-and-groups');
+    Route::get('/tasks-by-team-or-group', [TaskController::class, 'getTasksByTeamOrGroup'])->name('task.tasks-by-team-or-group');
+    Route::get('/tasks-by-tag', [TaskController::class, 'getTasksByTag'])->name('task.tasks-by-tag');
+//
+    Route::post('/create', [TaskController::class, 'create'])->name('create');
+    Route::post('/duplicate/{id}', [TaskController::class, 'duplicate'])->name('duplicate');
+    Route::put('/update/{id}', [TaskController::class, 'update'])->name('update');
+    Route::put('/updateAll/{id}', [TaskController::class, 'updateAll'])->name('updateAll');
+    Route::post('/bin/{id}', [TaskController::class, 'destroy'])->name('removeToBin');
+    Route::post('/binAll/{id}', [TaskController::class, 'destroyAll'])->name('removeAllToBin');
+
+    Route::post('/updatePriority/{id}', [TaskController::class, 'updatePriority'])->name('updatePriority');
+    Route::post('/updateStatusToDoing/{id}', [TaskController::class, 'updateStatusToDoing'])->name('updateStatusToDoing');
+    Route::post('/updateStatusToDone/{id}', [TaskController::class, 'updateStatusToDone'])->name('updateStatusToDone');
+    Route::delete('/deleteAllBin', [TaskController::class, 'deleteAllBin'])->name('deleteAllBin');
+    Route::delete('/deleteBin/{taskDetailId}', [TaskController::class, 'deleteBin'])->name('deleteBin');
+});
