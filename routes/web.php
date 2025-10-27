@@ -9,3 +9,85 @@ use App\Http\Controllers\Admin\TaskGroupController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserTaskController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+
+Route::prefix('/admin')->name('admin.')->group(function () {
+    //authentication
+    Route::prefix('auth')->name('auth.')->group(function () {
+        Route::get('/login', [AuthController::class, 'showLoginForm'])->name('showLogin');
+        Route::post('/login', [AuthController::class, 'login'])->name('login');
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+    });
+
+    //manage users
+    Route::prefix('/users')->name('users.')->group(function () {
+        Route::post('/change-pass/{id}', [UserController::class, 'changePass'])->name('change-pass');
+        Route::get('/search/email', [UserController::class, 'searchByEmail'])->name('search');
+
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('/create', [UserController::class, 'create'])->name('create');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::get('/{id}', [UserController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+    //dashboard
+    Route::prefix('/dashboard')->name('dashboard.')->group(function () {
+        Route::get('/', [DashboardController::class, 'index'])->name('index');
+    });
+
+    //manage task groups
+    Route::prefix('/task-groups')->name('task-groups.')->group(function () {
+        Route::get('/', [TaskGroupController::class, 'index'])->name('index');
+        Route::get('/create',[TaskGroupController::class,'create'])->name('create');
+        Route::get('/{id}', [TaskGroupController::class, 'show'])->name('show');
+        Route::post('/', [TaskGroupController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [TaskGroupController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [TaskGroupController::class, 'update'])->name('update');
+        Route::delete('/{id}', [TaskGroupController::class, 'destroy'])->name('destroy');
+    });
+
+    //manage tags
+    Route::prefix('/tags')->name('tags.')->group(function () {
+        Route::get('/', [TagController::class, 'index'])->name('index');
+        Route::get('/create', [TagController::class, 'create'])->name('create');
+        Route::post('/', [TagController::class, 'store'])->name('store');
+        Route::get('/{id}', [TagController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [TagController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [TagController::class, 'update'])->name('update');
+        Route::delete('/{id}', [TagController::class, 'destroy'])->name('destroy');
+        Route::get('/search/name', [TagController::class, 'searchByName'])->name('search');
+    });
+    Route::prefix('/tasks')->name('tasks.')->group(function () {
+        Route::get('/', [UserTaskController::class, 'index'])->name('index');
+        Route::get('/create', [UserTaskController::class, 'create'])->name('create');
+        Route::post('/', [UserTaskController::class, 'store'])->name('store');
+        Route::get('/show/{id}', [UserTaskController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [UserTaskController::class, 'edit'])->name('edit');
+        Route::delete('/{id}', [UserTaskController::class, 'destroy'])->name('destroy');
+    });
+    Route::prefix('/teams')->name('teams.')->group(function () {
+        Route::get('/', [TeamController::class, 'index'])->name('index');
+        Route::get('/create', [TeamController::class, 'create'])->name('create');
+        Route::post('/', [TeamController::class, 'store'])->name('store');
+        Route::get('/{id}', [TeamController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [TeamController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [TeamController::class, 'update'])->name('update');
+        Route::delete('/{id}', [TeamController::class, 'destroy'])->name('destroy');
+        Route::post('teams/add-users-to-team', [TeamController::class, 'addUsersToTeam'])->name('addUsersToTeam');
+        Route::delete('/{team_id}/users/{user_id}', [TeamController::class, 'removeUser'])->name('removeUser');
+
+        Route::get('add-task/{id}', [TeamController::class, 'addTaskView'])->name('addTaskView');
+        Route::post('add-task/{id}', [TeamController::class, 'addTaskToTeam'])->name('addTaskToTeam');
+
+    });
+
+});
+
+
+Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, 'verify'])
+    ->middleware(['signed'])
+    ->name('verification.verify');

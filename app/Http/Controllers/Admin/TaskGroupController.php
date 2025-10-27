@@ -1,71 +1,96 @@
 <?php
+namespace App\Http\Controllers\Admin;
 
-namespace App\Http\Controllers\User;
-
-use App\Models\TaskGroup;
-use App\Helpers\ApiResponse;
-use Illuminate\Http\Request;
+use App\Helpers\RedirectResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Repository\TaskGroup\TaskGroupRepository;
-use App\Http\Requests\TaskGroup\CreateTaskGroupRequest;
-use App\Http\Resources\TaskGroup\TaskGroupResource;
+use App\Http\Repository\User\UserRepository;
+use App\Http\Requests\Admin\TaskGroupRequest\TaskGroupStoreRequest;
+use App\Http\Requests\Admin\TaskGroupRequest\TaskGroupUpdateRequest;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
 
 class TaskGroupController extends Controller
 {
     protected $taskGroupRepository;
+    protected $userRepository;
 
-    public function __construct(TaskGroupRepository $taskGroupRepository)
+    public function __construct(TaskGroupRepository $taskGroupRepository,UserRepository $userRepository)
     {
-        $this->middleware('auth:sanctum');
         $this->taskGroupRepository = $taskGroupRepository;
+        $this->userRepository = $userRepository;
+        $this->middleware('admin');
     }
 
     public function index()
     {
-        $userId = auth('sanctum')->user()->id;
-        $taskGroups = $this->taskGroupRepository->getAllByUser($userId);
-        if ($taskGroups) {
-            return ApiResponse::success(TaskGroupResource::collection($taskGroups), 'Get tags successful', 200);
-        }
-        return ApiResponse::error('Get tags failed', 400);
+        $taskGroups = $this->taskGroupRepository->paginate();
+        return view('admin.task-group.index', compact('taskGroups'));
     }
 
-    //thêm tag
-    public function store(CreateTaskGroupRequest $request)
+    public function create()
     {
-        $userId = auth('sanctum')->user()->id;
-        $name = $request->input('name');
-        $tag = $this->taskGroupRepository->create([
-            'name' => $name,
-            'user_id' => $userId
-        ]);
-        if ($tag) {
-            return ApiResponse::success(new TaskGroupResource($tag), 'Create tag successful', 200);
-        }
-        return ApiResponse::error('Create tag failed', 400);
+        return view('admin.task-group.create');
     }
 
-    //sửa tag trừ tag tạo bởi admin
-    public function update(Request $request, $id)
+    public function store(TaskGroupStoreRequest $request)
     {
-        $name = $request->input('name');
-        $tag = $this->taskGroupRepository->updateByUser([
-            'name' => $name
-        ], $id);
-        if ($tag) {
-            return ApiResponse::success(new TaskGroupResource($tag), 'Update tag successful', 200);
-        } else {
-            return ApiResponse::error('Update tag failed', 400);
+        try {
+            $this->taskGroupRepository->create([
+                'name' => $request->name,
+                'user_id' => Auth::id(),
+                'is_admin_created' => 1,
+            ]);
+
+            return RedirectResponse::redirectWithMessage('admin.task-groups.index',[],RedirectResponse::SUCCESS, 'Tạo nhóm công việc thành công!');
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.task-groups.create',[],RedirectResponse::ERROR, 'Tạo nhóm công việc thất bại: ' . $e->getMessage());
         }
     }
 
-    //xóa tag trừ tag của admin
-    public function destroy($id)
+    public function edit(string $id)
     {
-        $tag = $this->taskGroupRepository->deleteByUser($id);
-        if ($tag) {
-            return ApiResponse::success(new TaskGroupResource($tag), 'Delete tag successful', 200);
+        try {
+            $taskGroup = $this->taskGroupRepository->find($id);
+            if (!$taskGroup) {
+                return RedirectResponse::redirectWithMessage('admin.task-groups.index', 'Nhóm công việc không tồn tại.');
+            }
+            $users = $this->userRepository->getAll();
+            return view('admin.task-group.update', ['taskGroup' => $taskGroup,'users' => $users]);
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.task-groups.index',[],RedirectResponse::ERROR, 'Có lỗi xảy ra: ' . $e->getMessage());
         }
-        return ApiResponse::error('Delete tag failed', 400);
+    }
+
+    public function update(TaskGroupUpdateRequest $request, string $id)
+    {
+        try {
+            $this->taskGroupRepository->update([
+                'name' => $request->name,
+                'user_id' => $request->user_id
+            ], $id);
+
+            return RedirectResponse::redirectWithMessage('admin.task-groups.index',[],RedirectResponse::SUCCESS, 'Cập nhật nhóm công việc thành công!');
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.task-groups.edit',[],RedirectResponse::ERROR, 'Cập nhật thất bại: ' . $e->getMessage());
+        }
+    }
+
+    public function show(string $id){
+        $taskGroup = $this->taskGroupRepository->find($id);
+
+        if (!$taskGroup) {
+            return RedirectResponse::redirectWithMessage('admin.task-group.index', RedirectResponse::ERROR, 'Không tìm thấy nhóm công việc!');
+        }
+        return view('admin.task-group.show', ['taskGroup' => $taskGroup])->with(RedirectResponse::SUCCESS, '');
+    }
+    public function destroy(string $id)
+    {
+        try {
+            $this->taskGroupRepository->delete($id);
+            return RedirectResponse::redirectWithMessage('admin.task-groups.index',[],RedirectResponse::SUCCESS, 'Xóa nhóm công việc thành công!');
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.task-groups.index',[],RedirectResponse::ERROR, 'Xóa thất bại: ' . $e->getMessage());
+        }
     }
 }

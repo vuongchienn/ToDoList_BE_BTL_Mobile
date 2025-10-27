@@ -4,12 +4,14 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Auth\Login;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\User\TagController;
+use App\Http\Controllers\User\NoteController;
 use App\Http\Controllers\User\TaskController;
-use App\Http\Controllers\Auth\VerifyEmailController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\User\TaskGroupController;
-
+use App\Http\Controllers\User\SearchHistoryController;
+use App\Http\Controllers\User\TeamController;
+use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 
 Route::prefix('/auth')->group(function () {
     Route::post('/login', [LoginController::class, 'login'])->name('login');
@@ -26,20 +28,6 @@ Route::prefix('/auth')->group(function () {
     Route::post('/reset', [ForgotPasswordController::class, 'resetPasswordWithOtp'])->name('password.reset'); // Đổi mật khẩu
 });
 
-Route::prefix('/tags')->name('tags.')->group(function () {
-    Route::get('/', [TagController::class, 'getAll'])->name('index');
-    Route::post('/create', [TagController::class, 'store'])->name('store');
-    Route::put('/update/{id}', [TagController::class, 'update'])->name('update');
-    Route::delete('/delete/{id}', [TagController::class, 'destroy'])->name('destroy');
-});
-
-Route::prefix('/task-groups')->name('task-groups.')->group(function () {
-    Route::get('/', [TaskGroupController::class, 'index'])->name('index');
-    Route::post('/create', [TaskGroupController::class, 'store'])->name('store');
-    Route::put('/update/{id}', [TaskGroupController::class, 'update'])->name('update');
-    Route::delete('/delete/{id}', [TaskGroupController::class, 'destroy'])->name('destroy');
-});
-
 //Chức năng quản lý notes của user
 Route::prefix('/notes')->name('notes.')->group(function () {
     Route::get('/{paginate}', [NoteController::class, 'index'])->name('index');
@@ -48,6 +36,21 @@ Route::prefix('/notes')->name('notes.')->group(function () {
     Route::delete('/delete/{id}', [NoteController::class, 'destroy'])->name('destroy');
 });
 
+//Chức năng quản lý tag của user
+Route::prefix('/tags')->name('tags.')->group(function () {
+    Route::get('/', [TagController::class, 'getAll'])->name('index');
+    Route::post('/create', [TagController::class, 'store'])->name('store');
+    Route::put('/update/{id}', [TagController::class, 'update'])->name('update');
+    Route::delete('/delete/{id}', [TagController::class, 'destroy'])->name('destroy');
+});
+
+//Chức năng quản lý group của users
+Route::prefix('/task-groups')->name('task-groups.')->group(function () {
+    Route::get('/', [TaskGroupController::class, 'index'])->name('index');
+    Route::post('/create', [TaskGroupController::class, 'store'])->name('store');
+    Route::put('/update/{id}', [TaskGroupController::class, 'update'])->name('update');
+    Route::delete('/delete/{id}', [TaskGroupController::class, 'destroy'])->name('destroy');
+});
 
 //Nhóm route task
 Route::prefix('/task')->name('task.')->group(function () {
@@ -73,4 +76,16 @@ Route::prefix('/task')->name('task.')->group(function () {
     Route::post('/updateStatusToDone/{id}', [TaskController::class, 'updateStatusToDone'])->name('updateStatusToDone');
     Route::delete('/deleteAllBin', [TaskController::class, 'deleteAllBin'])->name('deleteAllBin');
     Route::delete('/deleteBin/{taskDetailId}', [TaskController::class, 'deleteBin'])->name('deleteBin');
+});
+
+
+Route::prefix('/search-history')->name('searh-history.')->group(function () {
+    Route::get('/', [SearchHistoryController::class, 'index'])->name('index');
+    Route::delete('/{id}', [SearchHistoryController::class, 'destroy'])->name('destroy');
+    Route::delete('/', [SearchHistoryController::class, 'destroyAll'])->name('destroyAll');
+     Route::post('/', [SearchHistoryController::class, 'store'])->name('store');
+});
+
+Route::prefix('/teams')->group(function () {
+    Route::get('/user', [TeamController::class, 'getUserTeams'])->name('teams.user');
 });

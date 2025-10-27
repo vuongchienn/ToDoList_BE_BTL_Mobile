@@ -1,68 +1,108 @@
 <?php
+namespace App\Http\Controllers\Admin;
 
-namespace App\Http\Controllers\User;
-
-use App\Helpers\ApiResponse;
-use Illuminate\Http\Request;
+use App\Helpers\RedirectResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Repository\Tag\TagRepository;
-use App\Http\Requests\Tag\CreateTagRequest;
-use App\Http\Resources\Tag\TagResource;
+use Illuminate\Http\Request;
+use App\Http\Repository\Admin\User\Repository;
+use App\Http\Repository\User\UserRepository;
+use App\Http\Requests\Admin\TagRequest\TagStoreRequest;
+use App\Http\Requests\Admin\TagRequest\TagUpdateRequest;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Redis;
 
 class TagController extends Controller
 {
     protected $tagRepository;
-    public function __construct(TagRepository $tagRepository)
+    protected $userRepository;
+
+    public function __construct(TagRepository $tagRepository, UserRepository $userRepository)
     {
-        $this->middleware('auth:sanctum');
         $this->tagRepository = $tagRepository;
+        $this->userRepository = $userRepository;
+        $this->middleware('admin');
     }
 
-    public function getAll()
+    public function index()
     {
-        $userId = auth('sanctum')->user()->id;
-        $tags = $this->tagRepository->getAllByUser($userId);
-        if ($tags) {
-            return ApiResponse::success(TagResource::collection($tags), 'Get tags successful', 200);
-        }
-        return ApiResponse::error('Get tags failed', 400);
-    }
-    //thêm tag
-    public function store(CreateTagRequest $request)
-    {
-        $userId = auth('sanctum')->user()->id;
-        $name = $request->input('name');
-        $tag = $this->tagRepository->create([
-            'name' => $name,
-            'user_id' => $userId
-        ]);
-        if ($tag) {
-            return ApiResponse::success(new TagResource($tag), 'Create tag successful', 200);
-        }
-        return ApiResponse::error('Create tag failed', 400);
+        $tags = $this->tagRepository->paginate();
+        return view('admin.tag.index', compact('tags'));
     }
 
-    //sửa tag trừ tag tạo bởi admin
-    public function update(Request $request, $id)
+    public function create()
     {
-        $name = $request->input('name');
-        $tag = $this->tagRepository->updateByUser([
-            'name' => $name
-        ], $id);
-        if ($tag) {
-            return ApiResponse::success(new TagResource($tag), 'Update tag successful', 200);
-        } else {
-            return ApiResponse::error('Update tag failed', 400);
+        return view('admin.tag.create');
+    }
+
+    public function store(TagStoreRequest $request)
+    {
+        try {
+            $this->tagRepository->create([
+                'name' => $request->name,
+                'user_id' => Auth::id(),
+                'is_admin_created' => 1,
+            ]);
+
+            return RedirectResponse::redirectWithMessage('admin.tags.index',[],RedirectResponse::SUCCESS, 'Tạo tag thành công!');
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.tags.create',[],RedirectResponse::ERROR, 'Tạo tag thất bại: ' . $e->getMessage());
         }
     }
 
-    //xóa tag trừ tag của admin
-    public function destroy($id)
+    public function edit(string $id)
     {
-        $tag = $this->tagRepository->deleteByUser($id);
-        if ($tag) {
-            return ApiResponse::success(new TagResource($tag), 'Delete tag successful', 200);
+        try {
+            $tag = $this->tagRepository->find($id);
+            if (!$tag) {
+                return RedirectResponse::redirectWithMessage('admin.tags.index',[],RedirectResponse::WARNING ,'Tag không tồn tại.');
+            }
+            $users = $this->userRepository->getAll();
+            return view('admin.tag.update', ['tag' => $tag, 'users' => $users]);
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.tags.index', [],RedirectResponse::ERROR,'Có lỗi xảy ra: ' . $e->getMessage());
         }
-        return ApiResponse::error('Delete tag failed', 400);
+    }
+
+    public function update(TagUpdateRequest $request, string $id)
+    {
+        try {
+            $this->tagRepository->update([
+                'name' => $request->name,
+                'user_id' => $request->user_id
+            ], $id);
+
+
+            return RedirectResponse::redirectWithMessage('admin.tags.index',[],RedirectResponse::SUCCESS, 'Cập nhật tag thành công!');
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.tags.edit',[],RedirectResponse::ERROR, 'Cập nhật tag thất bại: ' . $e->getMessage());
+        }
+    }
+
+    public function show(string $id){
+        $tag = $this->tagRepository->find($id);
+
+        if (!$tag) {
+            return RedirectResponse::redirectWithMessage('admin.tags.index', RedirectResponse::ERROR, 'Không tìm thấy thẻ!');
+        }
+        return view('admin.tag.show', ['tag' => $tag])->with(RedirectResponse::SUCCESS, '');
+    }
+
+    public function destroy(string $id)
+    {
+        try {
+            $this->tagRepository->delete($id);
+            return RedirectResponse::redirectWithMessage('admin.tags.index',[],RedirectResponse::SUCCESS, 'Xóa tag thành công!');
+        } catch (\Exception $e) {
+            return RedirectResponse::redirectWithMessage('admin.tags.index',[],RedirectResponse::ERROR, 'Xóa tag thất bại: ' . $e->getMessage());
+        }
+    }
+
+    public function searchByName(Request $request)
+    {
+        $search = $request->input('search');
+        $tags = $this->tagRepository->searchByName($search);
+        return view('admin.tag.index', compact('tags'));
     }
 }
